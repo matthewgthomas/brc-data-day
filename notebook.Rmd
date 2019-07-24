@@ -1,0 +1,453 @@
+---
+title: "I&I Data Day - Introduction to data science"
+output:
+  html_document:
+    df_print: paged
+---
+
+# What on earth is a data scientist?
+
+A data scientist...
+
+- is someone who's better at statistics than a software engineer and better at software engineering than a statistician (I stole this line [from Twitter](https://twitter.com/josh_wills/status/198093512149958656?lang=en))
+- tends to fit more complex statistical models than 'traditional' data analysts / more interested in predictive modelling
+- uses (or should use) the scientific method
+- often works on combined/linked datasets
+
+# And what's so big about 'big' data?
+
+Big data tends to have/be:
+-	large size
+-	incongruity
+-	incompleteness
+-	complexity (e.g. data formats)
+-	multiplicity of scales (micro, meso, macro - across time and space)
+-	multiplicity of sources
+
+This is worth a read: http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0157077 
+
+But bear in mind ‘big’ data isn’t the be all and end all – it often lacks nuance and context (for which we can bring in more qualitative methods) and analyses of big data often lack any kind of theoretical basis, so might just be uncovering spurious correlations and/or ignoring the effects of confounding variables that aren’t in the dataset. Big data should ideally be analysed in combination with ['thick data'](https://medium.com/ethnography-matters/why-big-data-needs-thick-data-b4b3e75e3d7).
+
+# Tell me more...
+Knowing some statistical jargon could come in handy. Main terms: [statistical significance](https://towardsdatascience.com/statistical-significance-hypothesis-testing-the-normal-curve-and-p-values-93274fa32687), [effect size](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3444174/), [confidence interval](https://www.dummies.com/education/science/biology/confidence-interval-basics/), [correlation and regression](https://www.bmj.com/about-bmj/resources-readers/publications/statistics-square-one/11-correlation-and-regression).
+
+If you want to know more about machine learning / artificial intelligence, [The Master Algorithm](https://www.amazon.co.uk/Master-Algorithm-Ultimate-Learning-Machine/dp/0241004543) is an excellent and pretty accessible introduction to the different schools of thought/factions. Also have a read about [natural language processing](https://becominghuman.ai/a-simple-introduction-to-natural-language-processing-ea66a1747b32) – it’s super interesting.
+
+# A taster of data science
+
+A typical data science project will follow these steps:
+
+1. Collect data
+2. Clean data
+3. Explore data
+4. Analyse data / fit statistical models
+
+We'll go through them by playing with some data about films and actors from the [Internet Movie Database (IMDb)](https://www.imdb.com/) to answer some (hopefully) interesting questions.
+
+The data were collated by [Beyjin](https://www.kaggle.com/beyjin) and [distributed on Kaggle](https://www.kaggle.com/beyjin/movies-1990-to-2017/) under a Creative Commons license (Attribution-NonCommercial-ShareAlike 4.0 International).
+
+First, we install and load the [`tidyverse` packages](https://www.tidyverse.org/), which will help us do a lot of the data wrangling and analysis:
+
+```{r load_packages, message=FALSE, warning=FALSE}
+# install.packages("tidyverse")
+
+library(tidyverse)
+```
+
+# Load the film data
+
+Use tidyverse's `read_csv()` function to import data on films, actors and genres:
+
+```{r load_data}
+films = read_csv("data/Movie_Movies.csv")
+actors = read_csv("data/Movie_Actors.csv")
+genres = read_csv("data/Movie_Genres.csv")
+```
+
+We now have three dataframes loaded: `films`, `actors`, and `genres`. Let's take a peek at some of the data:
+
+```{r}
+head(films)  # show only the first few records
+```
+
+# Cleaning the data
+After fetching data, the first step in any data science analysis is to clean it. This dataset is already quite [tidy](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html), so we don't need to do anything here for now.
+
+# Exploring the data
+Now we can start to get to know the data and ask questions of it.
+
+## How many films are in the database (i.e. how many records in the dataframe)?
+
+```{r}
+nrow(films)
+```
+
+## What's the average rating across all films?
+
+```{r}
+mean(films$imdbRating, 
+     na.rm = TRUE)  # don't include missing ratings, otherwise the result will also be 'NA'
+```
+
+## How have ratings changed over time?
+
+Visualising data is a great way to explore it and understand the nuances in any dataset. We'll start by making a graph showing film ratings over time:
+
+```{r}
+# we'll save the graph into a variable so we can do other things with it later
+ratings_over_time = ggplot(films,
+       aes(x = Year,           # show film release years on the x-axis
+           y = imdbRating)) +  # ... and IMDb ratings on the y-axis
+  
+  # plot a point for each film rating
+  # **play with these values to see how it affects the graph**
+  geom_point(shape = 20,     # set the shape to be a small, filled circle
+             fill = "grey",  # make it grey
+             alpha = 0.2)    # and make it quite faint (because there'll be a lot of overlapping points)
+
+ratings_over_time  # display the graph
+```
+
+Let's add a trend line to this graph:
+
+```{r}
+ratings_over_time + 
+  geom_smooth()
+```
+
+According to this, film ratings seem not to have changed dramatically (on average) since 1920, although recently ratings have gotten a little higher.
+
+**Nerdy aside**: above the graph, it says "`geom_smooth()` using method = 'gam' and formula 'y ~ s(x, bs = "cs")'". It's using a technique called [Generalised Additive Modelling (GAM)](https://en.wikipedia.org/wiki/Generalized_additive_model) to draw the trend line. The formula tells you, mathematically, how to draw the line. (Remember from school-level maths that a straight line can be represented by the formula `y = ax + b` - this is just a more advanced version of that, allowing the line to curve.)
+
+## Which directors have made the most films?
+
+Rather than just working on the entire dataset, we can filter and summarise it in various ways to answer questions. We'll start by counting the number of films made by each director:
+
+```{r}
+films %>% 
+  filter(!is.na(Director)) %>%  # don't include records where we don't know who the director is
+  count(Director) %>%           # count the number of films listed for each director
+  arrange(desc(n)) %>%          # return the results with the highest counts at the top
+  head()                        # show only a handful of records
+```
+
+Who on earth is prolific film director Jim Powers??
+
+```{r}
+# uncomment the code below (delete the #s) if you want to see a selection of Jim Powers titles (NSFW!)
+
+# films %>% 
+#   filter(Director == "Jim Powers") %>%  # filter to keep only films directed by Jim Powers
+#   select(Title) %>%                     # we just want the film titles
+#   sample_n(5)                           # get a random sample of five films
+```
+
+## Which directors have made the highest-rated films? 
+
+We can do more complicated operations than just counting records. To find out which directors have made the highest-rated films, we'll calculate the average rating per director:
+
+```{r}
+films %>% 
+  filter(!is.na(Director) & !is.na(imdbRating)) %>%  # filter out records with no director and no rating
+  
+  group_by(Director) %>% 
+  
+  summarise(average_rating = mean(imdbRating),  # calculate average (mean) rating for each director's films
+            number_of_films = n()) %>%          # count the number of films by each director
+  
+  filter(number_of_films > 1) %>%    # only show directors who have made more than one film
+  arrange(desc(average_rating)) %>%  # return the results with the highest ratings at the top
+  head()                             # show only a handful of records
+```
+
+What films has Gustavo Goulart made?
+
+```{r}
+films %>% 
+  filter(Director == "<<INSERT DIRECTOR NAME HERE>>" ) %>% 
+  select(Title, Released, Plot)
+```
+
+Nope, me neither.
+
+What about films that have divided opinion? We'll look at the spread (or _standard deviation_) of ratings, rather than the average. Larger standard deviations mean a director's work is less consistently good (or bad).
+
+```{r}
+films %>% 
+  filter(!is.na(Director) & !is.na(imdbRating)) %>%  # filter out records with no director and no rating
+  
+  group_by(Director) %>% 
+  
+  summarise(sd_rating = sd(imdbRating),  # calculate standard deviation for each director's film ratings
+            number_of_films = n()) %>%   # count the number of films by each director
+  
+  filter(number_of_films > 1) %>%    # only show directors who have made more than one film
+  arrange(desc(sd_rating)) %>%       # return the results with the highest ratings at the top
+  head()                             # show only a handful of records
+```
+
+What did Jaime Fidalgo direct and how were his films received?
+
+```{r}
+films %>% 
+  filter(Director == "Jaime Fidalgo" ) %>% 
+  select(Title, imdbRating)
+```
+
+An inconsistent oeuvre...
+
+## Joining datasets together
+We can begin to ask more interesting questions by combining different datasets. Here's how to join two datasets:
+
+```{r}
+films_actors = films %>% 
+  left_join(actors, by = "imdbID")      # join the `films` and `actors` dataframes together
+```
+
+The `left_join()` function takes all rows in the `films` dataframe and tries to link them to entries in the `actors` dataframe, using the column `imdbID` (the ID number of the film) to make the connection. There are several other types of join; [here's an explanation of them](https://stat545.com/bit001_dplyr-cheatsheet.html).
+
+Now we can ask some more interesting questions...
+
+### Which actors have been in the highest-rated films?
+
+Taking the `film_actors` dataset - the one that joined the `actors` dataframe to the `films` dataframe - we'll calculate the average rating for each actor in our list:
+
+```{r}
+films_actors %>% 
+  # calculate the average rating for each actor's films, and the number of films they've been in
+  group_by(Actors) %>% 
+  summarise(average_rating = mean(imdbRating),
+            n_films = n()) %>% 
+  
+  # to make it more interesting, only show results for actors who have been in more than five films
+  filter(n_films > 5) %>% 
+  
+  # show highest-rated actors first
+  arrange(desc(average_rating)) %>% 
+  head()
+```
+
+### Which are the highest-rated actor-director pairs?
+
+Similarly, we can also look at which actors have found glory with which directors. First, we'll create a new dataframe containing pairs of actors and directors:
+
+```{r}
+director_actor_pairs = films %>% 
+  left_join(actors, by = "imdbID") %>%      # join the `films` and `actors` dataframes together
+  select(Director, Actors, imdbRating) %>%  # keep only these columns
+  na.omit()                                 # remove any missing records
+
+head(director_actor_pairs)
+```
+
+Let's look at which have been the most successful actor-director relationships (in terms of IMDb ratings):
+
+```{r}
+director_actor_pairs %>% 
+  group_by(Director, Actors) %>% 
+  summarise(average_rating = mean(imdbRating),
+            n_films = n()) %>% 
+  
+  filter(n_films > 2) %>% 
+  arrange(desc(average_rating))
+```
+
+Leonard Thimo directing himself, it seems. George Carlin does pretty well out of it too.
+
+# Bringing in other sources of data
+So far we've just been using data from a single source: IMDb. Analyses get really interesting when you can combine (or 'link') related datasets from different sources.
+
+IMDb ratings aren't the be all and end all. Let's look at film ratings from Rotten Tomatoes:
+
+```{r}
+# load film ratings from other data sources
+add_ratings = read_csv("data/Movie_AdditionalRating.csv")
+
+# we only need to keep the film ID (imdbID) and the Rotten Tomatoes rating
+add_ratings = add_ratings %>% 
+  filter(RatingSource == "Rotten Tomatoes") %>%  # keep only the Rotten Tomatoes ratings
+  select(imdbID, 
+         tomsRating = Rating)  # rename this column to `tomsRating`, to distinguish it from the IMDb one
+```
+
+We'll need to tweak the format because Rotten Tomatoes ratings are given as percentages...
+
+```{r}
+sample(add_ratings$tomsRating, 5)
+```
+
+... whereas IMDb ratings are scores out of ten:
+
+```{r}
+sample(films$imdbRating, 5)
+```
+
+To make them comparable, we can convert the Rotten Tomatoes percentages into scores out of ten:
+
+```{r}
+add_ratings = add_ratings %>% 
+  mutate(tomsRating = str_remove(tomsRating, "%")) %>%  # get rid of percentage signs
+  mutate(tomsRating = as.integer(tomsRating)) %>%       # convert from a string to an integer
+  mutate(tomsRating = tomsRating / 10)                  # make it out of ten rather than 100
+
+head(add_ratings)
+```
+
+Now we can merge these scores into the main `films` dataframe:
+
+```{r}
+films = films %>% 
+  left_join(add_ratings, by = "imdbID")
+```
+
+Calculate (and plot) discrepancies between IMDb ratings and Rotten Tomatoes scores:
+
+```{r}
+films %>% 
+  mutate(score_diff = abs(imdbRating - tomsRating)) %>%  # calculate absolute difference in ratings
+  mutate(Title = paste0(Title, " (", Year, ")")) %>%     # append release year to the title (for graph)
+  
+  filter(!is.na(score_diff)) %>%  # get rid of films without a score
+  arrange(desc(score_diff)) %>%   # put largest discrepancies first
+  head(20) %>%                    # keep 20 largest discrepancies
+  
+  # plot the discrepancies on a graph
+  ggplot(aes(x = reorder(Title, score_diff, sum),  # re-order x-axis so largest discrepancies come first
+             y = score_diff)) +
+  
+  geom_col() +  # draw a bar chart
+  coord_flip()  # flip so that film titles are on the y-axis
+```
+
+# A more advanced analysis: Film ratings compared to duration
+Given all these building blocks, we can start to do something a little more advanced. This section will cover some nifty data-wrangling, a bit of maths, some statistics, and a _ridiculously_ long film.
+
+To get started, we need to calculate each film's running time. At the moment, they're stored as strings of text, along the lines of "100 min" or "2 h 5 min". This block of code will do some string manipulation (using [regular expressions](https://regexr.com/)) and reshaping of data to convert these running times into numbers, representing a film's duration in minutes:
+
+```{r}
+ratings_duration = films %>% 
+  # keep only the columns we need for the graph
+  select(imdbID, Runtime, imdbRating, tomsRating) %>% 
+  
+  # get rid of any rows with missing data
+  na.omit() %>% 
+
+  # use a regular expression to extract only the numbers from the Runtime column - e.g. "2 h 5 min" will become two columns containing "2" and "5"
+  mutate(Runtime = str_remove(Runtime, ",")) %>%   # some numbers are separated by commas - get rid of the commas
+  mutate(duration = str_extract_all(Runtime, "[0-9]+")) %>% 
+  select(-Runtime) %>% 
+  unnest(duration) %>% 
+  
+  # each film could now have multiple rows (if its running time contained more than one number); convert these into separate columns for each number
+  group_by(imdbID) %>% 
+  mutate(number = paste0("time_", row_number())) %>% 
+  ungroup() %>% 
+  spread(number, duration) %>% 
+  
+  # by default the numbers are stored as character strings; convert them to numbers
+  mutate(time_1 = as.double(time_1),
+         time_2 = as.double(time_2))
+
+# convert running time to minutes
+ratings_duration = ratings_duration %>% 
+  mutate(Duration = case_when(
+    !is.na(time_2) ~ (time_1 * 60) + time_2,  # contains hours and minutes; convert hours to minutes and add up
+    is.na(time_2) ~ time_1                    # only contains minutes; use as is
+  )) %>% 
+  select(-time_1, -time_2)  # don't need the separate time columns anymore so drop them
+
+head(ratings_duration)
+```
+
+Now we have a dataframe containing IMDb ratings and film durations (in minutes). Now for some statistics. Let's look at the correlation between ratings and duration:
+
+```{r}
+cor.test(ratings_duration$imdbRating, ratings_duration$Duration)
+```
+
+The relationship between these two variables is [statistically significant](https://towardsdatascience.com/statistical-significance-hypothesis-testing-the-normal-curve-and-p-values-93274fa32687) because the p-value is way below the standard threshold of 0.05 (`p-value < 2.2e-16`). However, The size of the correlation isn't very large (-0.038, with a [95% confidence interval](https://www.dummies.com/education/science/biology/confidence-interval-basics/) of [-0.046, -0.029]), so there's nothing very interesting going on here.
+
+**YOUR TURN!** How would you test the correlation between Rotten Tomatoes ratings (`tomsRating`) and film duration (`Duration`)?
+
+```{r}
+# enter your code here
+```
+
+The relationship between ratings and duration becomes a bit clearer if we plot them together on a graph:
+
+```{r}
+ggplot(ratings_duration, aes(x = Duration, y = imdbRating)) +
+  
+  # plot a point for each film
+  # **play with these values to see how it affects the graph**
+  geom_point(shape = 20,     # set the shape to be a small, filled circle
+             fill = "grey",  # make it grey
+             alpha = 0.2) +  # and make it quite faint (because there'll be a lot of overlapping points)
+
+  # some films are insanely long and some are incredibly short; plot them on a logarithmic scale so the mid-length films don't get squished
+  scale_x_log10() +
+  
+  # add a trend line
+  geom_smooth()
+```
+
+Not much of a trend. The outlier all the way to the right of the graph is 2011's epic Finnish Documentary, [Modern Times Forever](https://www.imdb.com/title/tt2659636/) - a film that lasts TEN DAYS from start to finish!
+
+```{r}
+# get details for the longest film
+films %>% 
+  left_join(ratings_duration, by = "imdbID") %>% 
+  filter(Duration == max(ratings_duration$Duration)) %>%  # filter the film with the max. duration of all films in the dataframe
+  select(imdbID, Title, Director, Runtime)
+```
+
+# Bonus: word cloud of film titles
+
+```{r}
+# install.packages("tidytext", "wordcloud")
+
+library(tidytext)
+library(wordcloud)
+```
+
+Get each separate word from each film title (known as 'tokenisation') and count the number of times each word appears:
+
+```{r}
+film_title_words = films %>% 
+  select(imdbID, Title) %>% 
+  unnest_tokens(word, Title) %>% 
+  count(word, sort = TRUE) %>% 
+  ungroup()
+```
+
+Get rid of common words like 'the' and 'a':
+
+```{r}
+data("stop_words")
+
+film_title_words = film_title_words %>% 
+  anti_join(stop_words)
+```
+
+Get rid of numbers (e.g. '2' from 'Toy Story 2')
+
+```{r}
+nums = film_title_words %>% 
+  filter(str_detect(word, "^[0-9]")) %>% 
+  select(word) %>% 
+  unique()
+
+film_title_words = film_title_words %>% 
+  anti_join(nums, by = "word")
+```
+
+```{r}
+# define a nice color palette
+pal = brewer.pal(8, "Dark2")
+
+# plot the 50 most common words
+film_title_words %>% 
+  with(wordcloud(word, n, random.order = FALSE, max.words = 50, colors = pal))
+```
+
+An even better version of this would only use the stems of words (e.g. 'girl' for both 'girls' and 'girl'). You can do this yourself using the [`hunspell` package](https://docs.ropensci.org/hunspell/)...
