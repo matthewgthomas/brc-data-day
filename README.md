@@ -1,17 +1,17 @@
 # Data, code and instructions for the R session of British Red Cross's 'data day'
 
-## To do before the day
-### 1. Install R
-Download and install R:
-- if using Windows, go to https://www.stats.bris.ac.uk/R/bin/windows/base/ and click the 'download' link
-- if using Mac, go to https://www.stats.bris.ac.uk/R/bin/macosx/ and follow the instructions
+This interactive session will use an online version of R and RStudio -- hosted at https://rstudio.cloud/ -- to save you from needing to install software on your own computers.
 
-### 2. Install RStudio
-RStudio is a development environment that makes using R somewhat easier. Download and install the software from https://www.rstudio.com/products/rstudio/download/#download
+## To do before the day
+Sign up for an account at https://login.rstudio.cloud/register
 
 ## On the day
-### 1. Download data and code
-Click the green 'Clone or download' button near the top of this page, then click 'Download ZIP'. Once downloaded, unzip the file somewhere on your computer.
+Log in to your account at https://rstudio.cloud/
 
-### 2. Open the RStudio project
-Open the `brc-data-day-R.Rproj` file in RStudio. We'll be using the code in `notebook.Rmd`.
+Click the down arrow next to the 'New Project' button and then click 'New Project from Git Repo'
+
+![Step 1](step1.png)
+
+In the 'URL of your Git repository' box, type `https://github.com/matthewgthomas/brc-data-day-R` and click OK.
+
+![Step 2](step2.png)
