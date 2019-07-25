@@ -12,6 +12,6 @@ Click the down arrow next to the 'New Project' button and then click 'New Projec
 
 ![Step 1](step1.png)
 
-In the 'URL of your Git repository' box, type `https://github.com/matthewgthomas/brc-data-day-R` and click OK.
+In the 'URL of your Git repository' box, type `https://github.com/matthewgthomas/brc-data-day` and click OK.
 
 ![Step 2](step2.png)
